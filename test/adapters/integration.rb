@@ -295,13 +295,10 @@ module Adapters
       end
 
       def streaming_request(connection, method, path, options={})
-        # WebMock screws up streaming and just reutrns the entire response at once
-        WebMock.disable!
         streamed = []
         response = connection.send(method, path) do |req|
           req.on_data = Proc.new{|*args| streamed << args}
         end
-        WebMock.enable!
 
         [response, streamed]
       end

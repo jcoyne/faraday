@@ -11,11 +11,5 @@ module Adapters
     end unless jruby? and ssl_mode?
     # https://github.com/eventmachine/eventmachine/issues/180
 
-      def test_binds_local_socket
-        host = '1.2.3.4'
-        conn = create_connection :request => { :bind => { :host => host } }
-        assert_equal host, conn.options[:bind][:host]
-      end
-    end
   end
 end
