@@ -15,7 +15,7 @@ Faraday supports these adapters:
 It also includes a Rack adapter for hitting loaded Rack applications through
 Rack::Test, and a Test adapter for stubbing requests by hand.
 
-## Usage
+## <a name="usage"></a>Usage
 
 ```ruby
 conn = Faraday.new(:url => 'http://sushi.com') do |faraday|
@@ -47,12 +47,22 @@ conn.post do |req|
   req.body = '{ "name": "Unagi" }'
 end
 
-## Per-request options ##
+## Options ##
 
 conn.get do |req|
   req.url '/search'
-  req.options[:timeout] = 5           # open/read timeout in seconds
-  req.options[:open_timeout] = 2      # connection open timeout in seconds
+  req.options = {
+    :timeout => 5,                    # open/read timeout Integer in seconds
+    :open_timeout => 2,               # read timeout Integer in seconds
+    :proxy => {
+      :uri => "http://example.org/",  # proxy server URI
+      :user => "me",                  # proxy server username
+      :password => "test123"          # proxy server password
+    }
+  }
+  req.on_data = Proc.new do |data, size|  # streaming download (Net:HTTP adapter only right now)
+    puts "Downloaded #{size} bytes so far, current chunk starts with #{data[0..10]}"
+  end
 end
 ```
 
@@ -64,7 +74,6 @@ response = Faraday.get 'http://sushi.com/nigiri/sake.json'
 ```
 
 ## Advanced middleware usage
-
 The order in which middleware is stacked is important. Like with Rack, the
 first middleware on the list wraps all others, while the last middleware is the
 innermost one, so that must be the adapter.
@@ -128,14 +137,15 @@ later, response. Some keys are:
 :url    - URI for the current request; also contains GET parameters
 :body   - POST parameters for :post/:put requests
 :request_headers
+:on_data - a Proc to call every time a chunk of data is downloaded (streaming) - Proc.new{|data, size| ... }
 
 # response phase
-:status - HTTP response status code, such as 200
-:body   - the response body
+:status  - HTTP response status code, such as 200
+:body    - the response body
 :response_headers
 ```
 
-## Using Faraday for testing
+## <a name="testing"></a>Testing
 
 ```ruby
 # It's possible to define stubbed request outside a test adapter block.
@@ -170,43 +180,26 @@ resp = test.get '/else' #=> raises "no such stub" error
 stubs.verify_stubbed_calls
 ```
 
-## TODO
-
+## <a name="todo"></a>TODO
 * support streaming requests/responses
+* support streaming responses for adapters other than Net::HTTP
 * better stubbing API
 
-## Contributing
-
-You can run the test suite against a live server by running `script/test`. It
-automatically starts a test server in background. Only tests in
-`test/adapters/*_test.rb` require a server, though.
-
-``` sh
-# run the whole suite
-$ script/test
-
-# run only specific files
-$ script/test excon typhoeus
-```
-
-We will accept middleware that:
-
-1. is useful to a broader audience, but can be implemented relatively
-   simple; and
-2. which isn't already present in [faraday_middleware][] project.
-
-We will accept adapters that:
-
-1. support SSL & streaming;
-1. are proven and may have better performance than existing ones; or
-2. if they have features not present in included adapters.
+## <a name="pulls"></a>Note on Patches/Pull Requests
+1. Fork the project.
+2. Make your feature addition or bug fix.
+3. Add tests for it. This is important so I don't break it in a future version
+   unintentionally.
+4. Commit, do not mess with rakefile, version, or history. (if you want to have
+   your own version, that is fine but bump version in a commit by itself I can
+   ignore when I pull)
+5. Send us a pull request. Bonus points for topic branches.
 
 We are pushing towards a 1.0 release, when we will have to follow [Semantic
 Versioning][semver].  If your patch includes changes to break compatiblitity,
 note that so we can add it to the [Changelog][].
 
-## Supported Ruby versions
-
+## <a name="versions"></a>Supported Ruby Versions
 This library aims to support and is [tested against][travis] the following Ruby
 implementations:
 
@@ -230,9 +223,8 @@ implementation, you will be personally responsible for providing patches in a
 timely fashion. If critical issues for a particular implementation exist at the
 time of a major release, support for that Ruby version may be dropped.
 
-## Copyright
-
-Copyright (c) 2009-2012 [Rick Olson](mailto:technoweenie@gmail.com), zack hobson.
+## <a name="copyright"></a>Copyright
+Copyright (c) 2009-12 [Rick Olson](mailto:technoweenie@gmail.com), zack hobson.
 See [LICENSE][] for details.
 
 

@@ -10,6 +10,7 @@ unless ENV['CI']
 end
 
 require 'test/unit'
+require 'stringio'
 
 if ENV['LEFTRIGHT']
   begin
@@ -25,29 +26,12 @@ require 'stringio'
 require 'uri'
 
 module Faraday
-  module LiveServerConfig
-    def live_server=(value)
-      @@live_server = case value
-      when /^http/
-        URI(value)
-      when /./
-        URI('http://127.0.0.1:4567')
-      end
-    end
-
-    def live_server?
-      defined? @@live_server
-    end
-
-    # Returns an object that responds to `host` and `port`.
-    def live_server
-      live_server? and @@live_server
-    end
-  end
-
   class TestCase < Test::Unit::TestCase
-    extend LiveServerConfig
-    self.live_server = ENV['LIVE']
+    LIVE_SERVER = case ENV['LIVE']
+      when /^http/ then ENV['LIVE']
+      when nil     then nil
+      else 'http://127.0.0.1:4567'
+    end
 
     def test_default
       assert true

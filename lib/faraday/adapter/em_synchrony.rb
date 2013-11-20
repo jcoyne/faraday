@@ -3,7 +3,6 @@ require 'uri'
 module Faraday
   class Adapter
     class EMSynchrony < Faraday::Adapter
-      include EMHttp::Options
 
       dependency do
         require 'em-synchrony/em-http'
@@ -19,13 +18,45 @@ module Faraday
 
       def call(env)
         super
-        request = EventMachine::HttpRequest.new(URI::parse(env[:url].to_s), connection_config(env))        #   end
+        request = EventMachine::HttpRequest.new(URI::parse(env[:url].to_s))
+        options = {:head => env[:request_headers]}
+        options[:ssl] = env[:ssl] if env[:ssl]
+
+        if env[:body]
+          if env[:body].respond_to? :read
+            options[:body] = env[:body].read
+          else
+            options[:body] = env[:body]
+          end
+        end
+
+        if req = env[:request]
+          if proxy = req[:proxy]
+            uri = URI.parse(proxy[:uri])
+            options[:proxy] = {
+              :host => uri.host,
+              :port => uri.port
+            }
+            if proxy[:username] && proxy[:password]
+              options[:proxy][:authorization] = [proxy[:username], proxy[:password]]
+            end
+          end
+
+          # only one timeout currently supported by em http request
+          if req[:timeout] or req[:open_timeout]
+            options[:timeout] = [req[:timeout] || 0, req[:open_timeout] || 0].max
+          end
+        end
 
         http_method = env[:method].to_s.downcase.to_sym
 
         # Queue requests for parallel execution.
         if env[:parallel_manager]
-          env[:parallel_manager].add(request, http_method, request_config(env)) do |resp|
+          env[:parallel_manager].add(request, http_method, options) do |resp|
+            if want_streaming?(env)
+              warn "Streaming downloads for EventMachine are not yet implemented."
+              env[:on_data].call(resp.response, resp.response.bytesize)
+            end
             save_response(env, resp.response_header.status, resp.response) do |resp_headers|
               resp.response_header.each do |name, value|
                 resp_headers[name.to_sym] = value
@@ -39,7 +70,7 @@ module Faraday
         # Execute single request.
         else
           client = nil
-          block = lambda { request.send(http_method, request_config(env)) }
+          block = lambda { request.send(http_method, options) }
 
           if !EM.reactor_running?
             EM.run do
@@ -54,6 +85,10 @@ module Faraday
 
           raise client.error if client.error
 
+          if want_streaming?(env)
+            warn "Streaming downloads for EventMachine are not yet implemented."
+            env[:on_data].call(client.response, client.response.bytesize)
+          end
           save_response(env, client.response_header.status, client.response) do |resp_headers|
             client.response_header.each do |name, value|
               resp_headers[name.to_sym] = value

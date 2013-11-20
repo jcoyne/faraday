@@ -4,58 +4,6 @@ module Faraday
     # when in EM reactor loop or for making parallel requests in
     # synchronous code.
     class EMHttp < Faraday::Adapter
-      module Options
-        def connection_config(env)
-          options = {}
-          configure_proxy(options, env)
-          configure_timeout(options, env)
-          options
-        end
-
-        def request_config(env)
-          options = {
-            :body => read_body(env),
-            :head => env[:request_headers],
-            # :keepalive => true,
-            # :file => 'path/to/file', # stream data off disk
-          }
-          configure_compression(options, env)
-          options
-        end
-
-        def read_body(env)
-          body = env[:body]
-          body.respond_to?(:read) ? body.read : body
-        end
-
-        def configure_proxy(options, env)
-          if proxy = request_options(env)[:proxy]
-            options[:proxy] = {
-              :host => proxy[:uri].host,
-              :port => proxy[:uri].port,
-              :authorization => [proxy[:user], proxy[:password]]
-            }
-          end
-        end
-
-        def configure_timeout(options, env)
-          timeout, open_timeout = request_options(env).values_at(:timeout, :open_timeout)
-          options[:connect_timeout] = options[:inactivity_timeout] = timeout
-          options[:connect_timeout] = open_timeout if open_timeout
-        end
-
-        def configure_compression(options, env)
-          if env[:method] == :get and not options[:head].key? 'accept-encoding'
-            options[:head]['accept-encoding'] = 'gzip, compressed'
-          end
-        end
-
-        def request_options(env)
-          env[:request]
-        end
-      end
-
-      include Options
 
       dependency 'em-http'
 
@@ -114,6 +62,10 @@ module Faraday
       def perform_single_request(env)
         req = EventMachine::HttpRequest.new(env[:url], connection_config(env))
         req.setup_request(env[:method], request_config(env)).callback { |client|
+          if want_streaming?(env)
+            warn "Streaming downloads for EventMachine are not yet implemented."
+            env[:on_data].call(client.response, client.response.bytesize)
+          end
           save_response(env, client.response_header.status, client.response) do |resp_headers|
             client.response_header.each do |name, value|
               resp_headers[name.to_sym] = value
@@ -138,6 +90,67 @@ module Faraday
           errklass = Faraday::Error::ConnectionFailed
         end
         raise errklass, msg
+      end
+
+      def connection_config(env)
+        options = {}
+        configure_ssl(options, env)
+        configure_proxy(options, env)
+        configure_timeout(options, env)
+        options
+      end
+
+      def request_config(env)
+        options = {
+          :body => read_body(env),
+          :head => env[:request_headers],
+          # :keepalive => true,
+          # :file => 'path/to/file', # stream data off disk
+        }
+        configure_compression(options, env)
+        # configure_proxy_auth
+        # :proxy => {:authorization => [user, pass]}
+        # proxy[:username] && proxy[:password]
+        options
+      end
+
+      def read_body(env)
+        body = env[:body]
+        body.respond_to?(:read) ? body.read : body
+      end
+
+      def configure_ssl(options, env)
+        if ssl = env[:ssl]
+          # :ssl => {
+          #   :private_key_file => '/tmp/server.key',
+          #   :cert_chain_file => '/tmp/server.crt',
+          #   :verify_peer => false
+        end
+      end
+
+      def configure_proxy(options, env)
+        if proxy = request_options(env)[:proxy]
+          options[:proxy] = {
+            :host => proxy[:uri].host,
+            :port => proxy[:uri].port
+          }
+        end
+      end
+
+      def configure_timeout(options, env)
+        timeout, open_timeout = request_options(env).values_at(:timeout, :open_timeout)
+        options[:connect_timeout] = options[:inactivity_timeout] = timeout
+        options[:connect_timeout] = open_timeout if open_timeout
+      end
+
+      def configure_compression(options, env)
+        if env[:method] == :get and not options[:head].key? 'accept-encoding'
+          options[:head]['accept-encoding'] = 'gzip, compressed'
+        end
+      end
+
+      def request_options(env)
+        env[:request]
       end
 
       def parallel?(env)

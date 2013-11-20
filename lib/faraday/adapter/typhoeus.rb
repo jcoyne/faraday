@@ -45,6 +45,7 @@ module Faraday
         configure_ssl     req, env
         configure_proxy   req, env
         configure_timeout req, env
+        configure_socket  req, env
 
         req.on_complete do |resp|
           if resp.timed_out?
@@ -62,6 +63,11 @@ module Faraday
             raise Error::ConnectionFailed, resp.curl_error_message
           else
             raise Error::ClientError, resp.curl_error_message
+          end
+
+          if want_streaming?(env)
+            warn "Streaming downloads for EventMachine are not yet implemented."
+            env[:on_data].call(resp.body, resp.body.bytesize)
           end
 
           save_response(env, resp.code, resp.body) do |response_headers|
@@ -100,6 +106,12 @@ module Faraday
         env_req = request_options(env)
         req.timeout = req.connect_timeout = (env_req[:timeout] * 1000) if env_req[:timeout]
         req.connect_timeout = (env_req[:open_timeout] * 1000)          if env_req[:open_timeout]
+      end
+      
+      def configure_socket(req, env)
+        if bind = request_options(env)[:bind]
+          req.interface = bind[:host]
+        end
       end
 
       def request_options(env)

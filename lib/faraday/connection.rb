@@ -13,22 +13,11 @@ module Faraday
     attr_reader :params, :headers, :url_prefix, :builder, :options, :ssl, :parallel_manager
     attr_writer :default_parallel_manager
 
-    # Public: Initializes a new Faraday::Connection.
-    #
-    # url     - URI or String base URL to use as a prefix for all
-    #           requests (optional).
-    # options - Hash of settings that will be applied to every request made
-    #           from this Connection (default: {}).
-    #           :url     - URI or String base URL (default: "http:/").
-    #           :params  - Hash of URI query unencoded key/value pairs.
-    #           :headers - Hash of unencoded HTTP header key/value pairs.
-    #           :request - Hash of request options.
-    #           :ssl     - Hash of SSL options.
-    #           :proxy   - URI, String or Hash of HTTP proxy options
-    #                     (default: "http_proxy" environment variable).
-    #                     :uri      - URI or String
-    #                     :user     - String (optional)
-    #                     :password - String (optional)
+    # :url
+    # :params
+    # :headers
+    # :request
+    # :ssl
     def initialize(url = nil, options = {})
       if url.is_a?(Hash)
         options = url

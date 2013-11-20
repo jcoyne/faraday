@@ -13,5 +13,6 @@ module Adapters
       # distinguish whether it happened because of a 407 proxy response
       undef :test_proxy_auth_fail if ssl_mode?
     end
+
   end
 end

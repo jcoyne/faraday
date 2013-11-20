@@ -1,20 +1,29 @@
 source 'https://rubygems.org'
 
-gem 'ffi-ncurses', '~> 0.3', :platforms => :jruby
-gem 'jruby-openssl', '~> 0.8.8', :platforms => :jruby
-gem 'rake'
+group :development do
+  gem 'sinatra', '~> 1.2'
+  # WEBrick doesn't support streaming
+  gem 'thin', '~> 1.3.1'
+end
 
 group :test do
-  gem 'em-http-request', '>= 1.1', :require => 'em-http'
-  gem 'em-synchrony', '>= 1.0', :require => ['em-synchrony', 'em-synchrony/em-http']
-  gem 'excon', '>= 0.25.3'
-  gem 'leftright', '>= 0.9', :require => false
-  gem 'net-http-persistent', '>= 2.5', :require => false
-  gem 'patron', '>= 0.4.2', :platforms => :ruby
-  gem 'rack-test', '>= 0.6', :require => 'rack/test'
-  gem 'simplecov'
-  gem 'sinatra', '~> 1.3'
-  gem 'typhoeus', '~> 0.3.3', :platforms => :ruby
+  gem 'em-http-request', '~> 1.0', :require => 'em-http'
+  gem 'em-synchrony', '~> 1.0', :require => ['em-synchrony', 'em-synchrony/em-http'], :platforms => :ruby_19
+  gem 'excon', '~> 0.6'
+  gem 'httpclient', '~> 2.2'
+  gem 'net-http-persistent', '~> 2.5', :require => false
+  gem 'leftright', '~> 0.9', :require => false
+  gem 'rack-test', '~> 0.6', :require => 'rack/test'
+end
+
+platforms :ruby do
+  gem 'patron', '~> 0.4', '> 0.4.1'
+  gem 'typhoeus', '~> 0.3', '> 0.3.2'
+end
+
+platforms :jruby do
+  gem 'jruby-openssl', '~> 0.7'
+  gem 'ffi-ncurses', '~> 0.3'
 end
 
 gemspec
