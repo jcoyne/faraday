@@ -47,6 +47,7 @@ module Faraday
 
   class TestCase < Test::Unit::TestCase
     extend LiveServerConfig
+
     self.live_server = ENV['LIVE']
 
     def test_default

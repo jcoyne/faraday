@@ -252,6 +252,8 @@ module Adapters
         conn = create_connection(:proxy => proxy_uri)
 
         err = assert_raise Faraday::Error::ConnectionFailed do
+          # require 'pry'
+          # binding.pry
           conn.get '/echo'
         end
 
@@ -309,19 +311,20 @@ module Adapters
           :streaming? => true
         }.merge(options)
         expected_response = opts[:prefix] + big_string
-        opts[:chunk_size] ||= expected_response.size
-        chunk_count = (expected_response.size/opts[:chunk_size]).ceil
 
         chunks, sizes = streamed.transpose
 
-        if opts[:streaming?]
-          expected_sizes = (0..chunk_count).map{|i| i*opts[:chunk_size]} << expected_response.size
-          expected_chunks = [''] + expected_response.each_char.each_slice(opts[:chunk_size]).map(&:join)
-        else
-          expected_sizes = [expected_response.size]
-          expected_chunks = [expected_response]
+        # Check that the total size of the chunks (via the last size returned)
+        # is the same size as the expected_response
+        assert_equal sizes.last, expected_response.size
+
+        start_index = 0
+        expected_chunks = []
+        chunks.each do |actual_chunk|
+          expected_chunk = expected_response[start_index..((start_index + actual_chunk.bytesize)-1)]
+          expected_chunks << expected_chunk
+          start_index += expected_chunk.bytesize
         end
-        assert_equal expected_sizes, sizes
 
         # it's easier to read a smaller portion, so we check that first
         assert_equal expected_chunks[0][0..255], chunks[0][0..255]
