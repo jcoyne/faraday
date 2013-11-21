@@ -72,7 +72,7 @@ module Adapters
           end
         end
         assert !connection.in_parallel?
-        assert_match /Streaming .+ not yet implemented/, err
+        assert_match(/Streaming .+ not yet implemented/, err)
         opts = {:streaming? => false, :chunk_size => 16*1024}
         check_streaming_response(streamed1, opts.merge(:prefix => '{"a"=>"1"}'))
         check_streaming_response(streamed2, opts.merge(:prefix => '{"b"=>"2"}'))
@@ -99,7 +99,7 @@ module Adapters
         err = capture_warnings do
           response, streamed = streaming_request(create_connection, :get, 'stream')
         end
-        assert_match /Streaming .+ not yet implemented/, err
+        assert_match(/Streaming .+ not yet implemented/, err)
         check_streaming_response(streamed, :streaming? => false)
         assert_equal big_string, response.body
       end
@@ -109,7 +109,7 @@ module Adapters
         err = capture_warnings do
           response, streamed = streaming_request(create_connection, :get, 'stream')
         end
-        assert_match /Streaming .+ not yet implemented/, err
+        assert_match(/Streaming .+ not yet implemented/, err)
         check_streaming_response(streamed, :streaming? => false)
         assert_equal big_string, response.body
       end
