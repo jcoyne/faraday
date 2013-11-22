@@ -88,6 +88,7 @@ module Faraday
     #     :user       - Proxy server username
     #     :password   - Proxy server password
     # :ssl - Hash of options for configuring SSL requests.
+    # :on_data      - Proc to stream data
     def to_env(connection)
       { :method           => method,
         :body             => body,
